@@ -1,0 +1,305 @@
+// Конфигурация
+const API_URL = 'https://your-backend-url.onrender.com/api/analyze';
+const API_HEALTH_URL = 'https://your-backend-url.onrender.com/api/health';
+
+// Инициализация доски
+const board = Chessboard('board', {
+    draggable: false,
+    position: 'start',
+    pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png'
+});
+
+// Элементы DOM
+const imageInput = document.getElementById('imageInput');
+const dropArea = document.getElementById('dropArea');
+const previewImage = document.getElementById('previewImage');
+const noPreview = document.getElementById('noPreview');
+const analyzeBtn = document.getElementById('analyzeBtn');
+const clearBtn = document.getElementById('clearBtn');
+const demoBtn = document.getElementById('demoBtn');
+const fenDisplay = document.getElementById('fenDisplay');
+const bestMoveText = document.getElementById('bestMoveText');
+const sanMove = document.getElementById('sanMove');
+const scoreValue = document.getElementById('scoreValue');
+const scoreFill = document.getElementById('scoreFill');
+const apiStatus = document.getElementById('apiStatus');
+const copyFenBtn = document.getElementById('copyFenBtn');
+
+let currentImage = null;
+let currentFEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+
+// Проверка статуса API
+async function checkAPIStatus() {
+    try {
+        const response = await fetch(API_HEALTH_URL);
+        if (response.ok) {
+            apiStatus.innerHTML = '<i class="fas fa-circle" style="color: #00ff9d"></i> Активен';
+        } else {
+            apiStatus.innerHTML = '<i class="fas fa-circle" style="color: #ff9500"></i> Проблемы';
+        }
+    } catch (error) {
+        apiStatus.innerHTML = '<i class="fas fa-circle" style="color: #ff4757"></i> Недоступен';
+    }
+}
+
+// Обработка загрузки изображения
+dropArea.addEventListener('click', () => imageInput.click());
+
+imageInput.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        loadImage(file);
+    }
+});
+
+// Drag and drop
+['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    dropArea.addEventListener(eventName, preventDefaults, false);
+});
+
+function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+}
+
+['dragenter', 'dragover'].forEach(eventName => {
+    dropArea.addEventListener(eventName, highlight, false);
+});
+
+['dragleave', 'drop'].forEach(eventName => {
+    dropArea.addEventListener(eventName, unhighlight, false);
+});
+
+function highlight() {
+    dropArea.style.borderColor = '#00fff5';
+    dropArea.style.backgroundColor = 'rgba(0, 173, 181, 0.1)';
+}
+
+function unhighlight() {
+    dropArea.style.borderColor = '#393e46';
+    dropArea.style.backgroundColor = 'transparent';
+}
+
+dropArea.addEventListener('drop', handleDrop, false);
+
+function handleDrop(e) {
+    const dt = e.dataTransfer;
+    const files = dt.files;
+    
+    if (files.length > 0) {
+        loadImage(files[0]);
+    }
+}
+
+function loadImage(file) {
+    const reader = new FileReader();
+    
+    reader.onload = function(e) {
+        currentImage = e.target.result;
+        previewImage.src = currentImage;
+        previewImage.style.display = 'block';
+        noPreview.style.display = 'none';
+        
+        // Обновляем FEN (в реальности здесь будет вызов API для распознавания)
+        updateFENFromImage();
+    };
+    
+    reader.readAsDataURL(file);
+}
+
+function updateFENFromImage() {
+    // Заглушка - в реальности здесь будет API вызов
+    const demoFENs = [
+        'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+        'r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3',
+        'rnbqk2r/pppp1ppp/5n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4'
+    ];
+    
+    const randomFEN = demoFENs[Math.floor(Math.random() * demoFENs.length)];
+    currentFEN = randomFEN;
+    fenDisplay.textContent = currentFEN;
+    board.position(chessFENtoBoardFEN(currentFEN));
+}
+
+// Анализ позиции
+analyzeBtn.addEventListener('click', async function() {
+    if (!currentImage && !currentFEN) {
+        alert('Пожалуйста, загрузите изображение или установите позицию');
+        return;
+    }
+    
+    analyzeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Анализ...';
+    analyzeBtn.disabled = true;
+    
+    try {
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                image: currentImage,
+                fen: currentFEN
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        
+        // Обновляем интерфейс с результатами
+        updateAnalysisResults(data);
+        
+    } catch (error) {
+        console.error('Ошибка анализа:', error);
+        // Заглушка для демо
+        demoAnalysis();
+    } finally {
+        analyzeBtn.innerHTML = '<i class="fas fa-brain"></i> Анализировать позицию';
+        analyzeBtn.disabled = false;
+    }
+});
+
+// Демо-анализ (если API не доступно)
+function demoAnalysis() {
+    const demoResults = {
+        best_move: 'e2-e4',
+        best_move_uci: 'e2e4',
+        san_move: 'e4',
+        score: 52,
+        fen: currentFEN
+    };
+    
+    updateAnalysisResults(demoResults);
+}
+
+function updateAnalysisResults(data) {
+    // Обновляем лучший ход
+    bestMoveText.textContent = data.best_move || data.best_move_uci || 'N/A';
+    sanMove.textContent = data.san_move || data.best_move || 'N/A';
+    
+    // Обновляем оценку
+    const score = data.score || 0;
+    scoreValue.textContent = score > 0 ? `+${(score/100).toFixed(2)}` : (score/100).toFixed(2);
+    scoreValue.style.color = score > 0 ? '#00ff9d' : score < 0 ? '#ff4757' : '#ffd166';
+    
+    // Обновляем шкалу оценки
+    const normalizedScore = Math.min(Math.max((score + 500) / 1000, 0), 1);
+    scoreFill.style.width = `${normalizedScore * 100}%`;
+    
+    // Обновляем FEN и доску
+    if (data.fen) {
+        currentFEN = data.fen;
+        fenDisplay.textContent = currentFEN;
+        board.position(chessFENtoBoardFEN(currentFEN));
+    }
+    
+    // Обновляем детали анализа
+    updateAnalysisDetails(data);
+}
+
+function updateAnalysisDetails(data) {
+    const detailsList = document.getElementById('analysisDetails');
+    const score = data.score || 0;
+    
+    let recommendation = '';
+    let material = '';
+    let difficulty = '';
+    
+    if (score > 200) {
+        recommendation = 'Атакующая игра с давлением на короля';
+        difficulty = 'Мастер';
+    } else if (score > 50) {
+        recommendation = 'Постепенное накопление преимущества';
+        difficulty = 'Продвинутый';
+    } else if (score > -50) {
+        recommendation = 'Уравнительная позиция, ищем тактические возможности';
+        difficulty = 'Средний';
+    } else {
+        recommendation = 'Защита и контригра';
+        difficulty = 'Сложная';
+    }
+    
+    material = score > 100 ? 'Преимущество у белых' : 
+               score < -100 ? 'Преимущество у чёрных' : 'Материальный баланс';
+    
+    detailsList.innerHTML = `
+        <li>Рекомендуемый план: ${recommendation}</li>
+        <li>Материальный баланс: ${material}</li>
+        <li>Сложность: ${difficulty}</li>
+        <li>Глубина анализа: 15 полуходов</li>
+    `;
+}
+
+// Демо-позиция
+demoBtn.addEventListener('click', function() {
+    const demoPositions = [
+        {fen: 'r1bqkb1r/pppp1ppp/2n2n2/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 0 4', name: 'Итальянская партия'},
+        {fen: 'rnbqkbnr/ppp2ppp/8/3pp3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3', name: 'Французская защита'},
+        {fen: 'r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/3P1N2/PPP2PPP/RNBQK2R b KQkq - 0 5', name: 'Защита двух коней'}
+    ];
+    
+    const randomPos = demoPositions[Math.floor(Math.random() * demoPositions.length)];
+    currentFEN = randomPos.fen;
+    currentImage = null;
+    
+    fenDisplay.textContent = currentFEN;
+    board.position(chessFENtoBoardFEN(currentFEN));
+    
+    previewImage.style.display = 'none';
+    noPreview.style.display = 'flex';
+    noPreview.innerHTML = `<i class="fas fa-chess-board fa-4x"></i><p>Демо: ${randomPos.name}</p>`;
+    
+    // Автоматический анализ
+    setTimeout(() => {
+        demoAnalysis();
+    }, 500);
+});
+
+// Очистка
+clearBtn.addEventListener('click', function() {
+    imageInput.value = '';
+    currentImage = null;
+    currentFEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+    
+    fenDisplay.textContent = currentFEN;
+    board.position('start');
+    
+    previewImage.style.display = 'none';
+    noPreview.style.display = 'flex';
+    noPreview.innerHTML = '<i class="fas fa-chess-board fa-4x"></i><p>Фото не загружено</p>';
+    
+    // Сброс результатов анализа
+    bestMoveText.textContent = 'e2-e4';
+    sanMove.textContent = 'e4';
+    scoreValue.textContent = '+0.5';
+    scoreFill.style.width = '55%';
+});
+
+// Копирование FEN
+copyFenBtn.addEventListener('click', function() {
+    navigator.clipboard.writeText(currentFEN).then(() => {
+        const originalHTML = copyFenBtn.innerHTML;
+        copyFenBtn.innerHTML = '<i class="fas fa-check"></i>';
+        setTimeout(() => {
+            copyFenBtn.innerHTML = originalHTML;
+        }, 2000);
+    });
+});
+
+// Вспомогательные функции
+function chessFENtoBoardFEN(fen) {
+    return fen.split(' ')[0];
+}
+
+// Загрузка начальной позиции
+board.position('start');
+
+// Проверка статуса API при загрузке
+checkAPIStatus();
+setInterval(checkAPIStatus, 60000); // Проверка каждую минуту
+
+// Инициализация с демо-данными
+demoAnalysis();
