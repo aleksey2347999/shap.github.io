@@ -1,2 +1,0 @@
-# shap.github.io
-сайт 
