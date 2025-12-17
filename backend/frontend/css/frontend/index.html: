@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chess AI Analyzer</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-chess"></i> Chess AI Analyzer</h1>
+            <p class="subtitle">Загрузите фото шахматной доски и получите лучший ход</p>
+        </header>
+
+        <main>
+            <div class="upload-section">
+                <div class="upload-area" id="dropArea">
+                    <i class="fas fa-upload fa-3x"></i>
+                    <h3>Перетащите фото сюда</h3>
+                    <p>или нажмите для выбора файла</p>
+                    <input type="file" id="imageInput" accept="image/*" capture="environment">
+                    <div class="supported-formats">
+                        <span>Поддерживаемые форматы: JPG, PNG, WebP</span>
+                    </div>
+                </div>
+                
+                <div class="controls">
+                    <button id="analyzeBtn" class="btn btn-primary">
+                        <i class="fas fa-brain"></i> Анализировать позицию
+                    </button>
+                    <button id="clearBtn" class="btn btn-secondary">
+                        <i class="fas fa-trash"></i> Очистить
+                    </button>
+                    <button id="demoBtn" class="btn btn-info">
+                        <i class="fas fa-magic"></i> Демо-позиция
+                    </button>
+                </div>
+            </div>
+
+            <div class="results-section">
+                <div class="chess-board">
+                    <div id="board"></div>
+                    <div class="board-info">
+                        <h3>Текущая позиция:</h3>
+                        <div class="fen-display">
+                            <code id="fenDisplay">rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1</code>
+                            <button id="copyFenBtn" class="btn-small">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="analysis-result">
+                    <h2><i class="fas fa-robot"></i> Анализ AI</h2>
+                    <div class="result-card">
+                        <div class="result-item best-move">
+                            <h3>Лучший ход:</h3>
+                            <div class="move-display">
+                                <span id="bestMoveText">e2-e4</span>
+                                <div class="move-notation">
+                                    <span class="label">SAN:</span>
+                                    <span id="sanMove">e4</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="result-item evaluation">
+                            <h3>Оценка позиции:</h3>
+                            <div class="score-display">
+                                <div class="score-value" id="scoreValue">+0.5</div>
+                                <div class="score-bar">
+                                    <div class="score-fill" id="scoreFill"></div>
+                                </div>
+                                <div class="score-labels">
+                                    <span>Чёрные</span>
+                                    <span>Белые</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="result-item details">
+                            <h3>Детали:</h3>
+                            <ul id="analysisDetails">
+                                <li>Рекомендуемый план: Контроль центра</li>
+                                <li>Материальный баланс: равный</li>
+                                <li>Сложность: Новичок</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="next-steps">
+                        <h3>Следующие возможные ходы:</h3>
+                        <div class="moves-list" id="nextMoves">
+                            <div class="move-suggestion">Nf3</div>
+                            <div class="move-suggestion">d4</div>
+                            <div class="move-suggestion">Bc4</div>
+                            <div class="move-suggestion">c3</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="preview-section">
+                <h3><i class="fas fa-image"></i> Предпросмотр фото:</h3>
+                <div class="image-preview">
+                    <img id="previewImage" src="" alt="Предпросмотр">
+                    <div class="no-preview" id="noPreview">
+                        <i class="fas fa-chess-board fa-4x"></i>
+                        <p>Фото не загружено</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <div class="footer-info">
+                <p>Powered by SWILL AI Chess Engine</p>
+                <p class="api-status">
+                    Статус API: 
+                    <span class="status-indicator" id="apiStatus">
+                        <i class="fas fa-circle"></i> Проверка...
+                    </span>
+                </p>
+            </div>
+            <div class="instructions">
+                <h4><i class="fas fa-info-circle"></i> Инструкция:</h4>
+                <ol>
+                    <li>Сделайте чёткое фото шахматной доски сверху</li>
+                    <li>Убедитесь, что все фигуры видны</li>
+                    <li>Нажмите "Анализировать позицию"</li>
+                    <li>Получите лучший ход и оценку позиции</li>
+                </ol>
+            </div>
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+    <script src="js/script.js"></script>
+</body>
+</html>
